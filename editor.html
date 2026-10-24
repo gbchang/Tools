@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>HTML 即時編輯預覽器</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome 圖示 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Noto+Sans+TC:wght@400;500;700&display=swap');
+    body { font-family: 'Noto Sans TC', sans-serif; }
+    .font-mono-code { font-family: 'JetBrains Mono', monospace; }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col h-screen overflow-hidden">
+
+  <!-- 頂部導覽列 -->
+  <header class="bg-slate-800 border-b border-slate-700 px-4 py-3 flex justify-between items-center shrink-0">
+    <div class="flex items-center gap-3">
+      <a href="index.html" class="px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white text-sm font-medium flex items-center gap-2 transition">
+        <i class="fa-solid fa-arrow-left"></i>
+        <span>返回主頁</span>
+      </a>
+      <h1 class="text-lg font-bold text-slate-100 hidden sm:flex items-center gap-2">
+        <i class="fa-solid fa-code text-blue-400"></i> HTML 即時編輯預覽器
+      </h1>
+    </div>
+
+    <!-- 功能操作按鈕 -->
+    <div class="flex items-center gap-2">
+      <button onclick="loadTemplate()" class="px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white text-xs sm:text-sm font-medium transition flex items-center gap-1.5" title="載入範例程式碼">
+        <i class="fa-solid fa-lightbulb text-amber-400"></i> 載入範例
+      </button>
+      <button onclick="clearEditor()" class="px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white text-xs sm:text-sm font-medium transition flex items-center gap-1.5" title="清空程式碼">
+        <i class="fa-solid fa-trash-can text-rose-400"></i> 清空
+      </button>
+      <button onclick="runPreview()" class="px-4 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-xs sm:text-sm font-bold transition flex items-center gap-1.5 shadow-lg shadow-blue-600/20">
+        <i class="fa-solid fa-play"></i> 重新整理預覽
+      </button>
+    </div>
+  </header>
+
+  <!-- 主內容區：左右分欄 (手機上上下排列) -->
+  <main class="flex-1 flex flex-col lg:flex-row overflow-hidden">
+    
+    <!-- 左側：程式碼輸入區 -->
+    <div class="w-full lg:w-1/2 flex flex-col border-b lg:border-b-0 lg:border-r border-slate-700 bg-slate-950 h-1/2 lg:h-full">
+      <div class="bg-slate-900 px-4 py-2 border-b border-slate-800 flex justify-between items-center text-xs text-slate-400 shrink-0">
+        <span class="font-medium flex items-center gap-2">
+          <i class="fa-solid fa-terminal text-blue-400"></i> 程式碼編輯器 (HTML / CSS / JS)
+        </span>
+        <label class="flex items-center gap-2 cursor-pointer select-none">
+          <input type="checkbox" id="auto-run-toggle" checked class="rounded bg-slate-800 border-slate-700 text-blue-600 focus:ring-0">
+          <span>即時自動預覽</span>
+        </label>
+      </div>
+      <div class="flex-1 relative">
+        <textarea id="code-input" 
+          class="w-full h-full bg-slate-950 text-slate-200 p-4 font-mono-code text-sm resize-none focus:outline-none leading-relaxed selection:bg-blue-600 selection:text-white"
+          placeholder="在此貼上或輸入 HTML 語法..."
+          oninput="handleInput()"></textarea>
+      </div>
+    </div>
+
+    <!-- 右側：即時預覽呈現區 -->
+    <div class="w-full lg:w-1/2 flex flex-col bg-white h-1/2 lg:h-full">
+      <div class="bg-slate-100 px-4 py-2 border-b border-slate-200 flex justify-between items-center text-xs text-slate-600 shrink-0">
+        <span class="font-medium flex items-center gap-2">
+          <i class="fa-solid fa-eye text-emerald-600"></i> 即時預覽畫面
+        </span>
+        <span id="status-badge" class="px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-[10px] font-semibold">運行中</span>
+      </div>
+      <div class="flex-1 relative w-full h-full bg-white">
+        <iframe id="preview-frame" class="w-full h-full border-0"></iframe>
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    let debounceTimer = null;
+
+    // 預設範例程式碼
+    const sampleCode = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <script src="https://cdn.tailwindcss.com"><\/script>
+</head>
+<body class="bg-slate-50 flex items-center justify-center min-h-screen m-0">
+  <div class="text-center p-8 bg-white rounded-2xl shadow-xl border border-slate-100 max-w-sm">
+    <div class="w-16 h-16 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-4">
+      🚀
+    </div>
+    <h1 class="text-2xl font-bold text-slate-800 mb-2">Hello World!</h1>
+    <p class="text-slate-500 text-sm mb-6">這是一個即時預覽的網頁範例，您可以隨意修改左側的程式碼！</p>
+    <button onclick="alert('點擊成功！')" class="w-full py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl transition shadow-md shadow-blue-500/20">
+      點我測試互動
+    </button>
+  </div>
+</body>
+</html>`;
+
+    // 初始化載入範例
+    window.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('code-input').value = sampleCode;
+      runPreview();
+    });
+
+    // 執行預覽更新
+    function runPreview() {
+      const code = document.getElementById('code-input').value;
+      const iframe = document.getElementById('preview-frame');
+      
+      // 使用 iframe 的 contentDocument 寫入動態 HTML，確保支援完整的 JS 互動與 CSS
+      const frameDoc = iframe.contentDocument || iframe.contentWindow.document;
+      frameDoc.open();
+      frameDoc.write(code);
+      frameDoc.close();
+    }
+
+    // 具備防手震 (Debounce) 機制的自動預覽
+    function handleInput() {
+      const autoRun = document.getElementById('auto-run-toggle').checked;
+      if (!autoRun) return;
+
+      clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(() => {
+        runPreview();
+      }, 300); // 停止輸入 300ms 後自動重新整理預覽
+    }
+
+    // 載入範例按鈕
+    function loadTemplate() {
+      if (confirm('是否載入預設範例？這將會覆蓋目前編輯器中的內容。')) {
+        document.getElementById('code-input').value = sampleCode;
+        runPreview();
+      }
+    }
+
+    // 清空編輯器
+    function clearEditor() {
+      if (confirm('確定要清空所有程式碼嗎？')) {
+        document.getElementById('code-input').value = '';
+        runPreview();
+      }
+    }
+  </script>
+</body>
+</html>

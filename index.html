@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>多功能線上工具箱</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome 圖示 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700&display=swap');
+    body { font-family: 'Noto Sans TC', sans-serif; }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col p-4 md:p-8">
+
+  <!-- 頂部標題列 -->
+  <header class="max-w-6xl w-full mx-auto mb-8 text-center md:text-left border-b border-slate-800 pb-6 flex flex-col md:flex-row justify-between items-center gap-4">
+    <div>
+      <h1 class="text-3xl font-bold bg-gradient-to-r from-blue-400 to-indigo-400 bg-clip-text text-transparent">
+        <i class="fa-solid fa-toolbox mr-2"></i>實用線上工具箱
+      </h1>
+      <p class="text-slate-400 text-sm mt-1">點擊下方卡片開啟對應工具</p>
+    </div>
+  </header>
+
+  <!-- 工具卡片列表區 -->
+  <main class="max-w-6xl w-full mx-auto flex-1">
+    <div id="tool-grid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+      <!-- 卡片將由 JavaScript 動態生成 -->
+    </div>
+  </main>
+
+  <footer class="max-w-6xl w-full mx-auto mt-12 pt-6 border-t border-slate-800 text-center text-slate-500 text-sm">
+    &copy; 實用工具箱 | 獨立模組架構
+  </footer>
+
+  <script>
+    // 未來要增加工具，只需要在陣列新增一個物件即可！
+    const tools = [
+    {
+        id: "display",
+        title: "全螢幕時鐘與文字顯示器",
+        desc: "支援現在時間、倒數計時器以及客製化大字體文字顯示，適合演講、會議或簡報展示。",
+        icon: "fa-solid fa-desktop text-blue-400",
+        url: "display.html"
+    },
+    {
+        id: "editor",
+        title: "HTML 即時編輯預覽器",
+        desc: "左側輸入 HTML/CSS/JS 語法，右側即時呈現網頁執行結果，內建 Tailwind CSS 支援。",
+        icon: "fa-solid fa-code text-emerald-400",
+        url: "editor.html"
+    },
+    {
+    id: "json-editor",
+    title: "JSON 編輯器與檢視器",
+    desc: "左側即時編輯與驗證 JSON，右側提供具備色彩標示與摺疊功能的互動式樹狀檢視器。",
+    icon: "fa-solid fa-brackets-curly text-purple-400",
+    url: "json-editor.html"
+    }
+    ];
+
+    const grid = document.getElementById('tool-grid');
+
+    tools.forEach(tool => {
+      const card = document.createElement('a');
+      card.href = tool.url;
+      card.className = "bg-slate-800/80 hover:bg-slate-800 border border-slate-700/60 hover:border-blue-500/50 transition-all duration-300 rounded-2xl p-6 flex flex-col justify-between group shadow-lg hover:shadow-blue-500/10 hover:-translate-y-1";
+      card.innerHTML = `
+        <div>
+          <div class="w-12 h-12 rounded-xl bg-slate-700/50 flex items-center justify-center text-2xl mb-4 group-hover:scale-110 transition-transform duration-300">
+            <i class="${tool.icon}"></i>
+          </div>
+          <h2 class="text-xl font-bold text-slate-100 group-hover:text-blue-400 transition-colors mb-2">${tool.title}</h2>
+          <p class="text-slate-400 text-sm leading-relaxed">${tool.desc}</p>
+        </div>
+        <div class="mt-6 flex items-center text-xs font-semibold text-blue-400 group-hover:text-blue-300">
+          <span>開啟工具</span>
+          <i class="fa-solid fa-arrow-right ml-2 group-hover:translate-x-1 transition-transform"></i>
+        </div>
+      `;
+      grid.appendChild(card);
+    });
+  </script>
+</body>
+</html>

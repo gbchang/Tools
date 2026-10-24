@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>全螢幕顯示器</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome 圖示 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@700&family=Noto+Sans+TC:wght@700&display=swap');
+    .font-mono-num { font-family: 'JetBrains Mono', monospace; }
+    body { font-family: 'Noto Sans TC', sans-serif; }
+
+    /* 偽全螢幕 (CSS Fullscreen) */
+    .pseudo-fullscreen {
+      position: fixed !important;
+      top: 0 !important;
+      left: 0 !important;
+      width: 100vw !important;
+      height: 100vh !important;
+      z-index: 99999 !important;
+    }
+  </style>
+</head>
+<body id="main-container" class="bg-black text-white min-h-screen flex flex-col justify-between transition-colors duration-500 select-none">
+
+  <!-- 頂部控制列 -->
+  <header id="control-bar" class="p-4 flex flex-wrap justify-between items-center bg-slate-900/85 backdrop-blur border-b border-slate-800 z-10">
+    <div class="flex items-center gap-3">
+      <a href="index.html" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white text-sm font-medium flex items-center gap-2 transition">
+        <i class="fa-solid fa-arrow-left"></i>
+        <span>返回主頁</span>
+      </a>
+      <h1 class="text-lg font-bold text-slate-200 hidden sm:block">全螢幕顯示器</h1>
+    </div>
+
+    <!-- 模式切換鈕 -->
+    <div class="flex bg-slate-800 p-1 rounded-xl border border-slate-700">
+      <button onclick="switchMode('clock')" id="btn-clock" class="px-3 py-1.5 rounded-lg text-sm font-medium transition">現在時間</button>
+      <button onclick="switchMode('timer')" id="btn-timer" class="px-3 py-1.5 rounded-lg text-sm font-medium text-slate-400 hover:text-white transition">倒數計時</button>
+      <button onclick="switchMode('text')" id="btn-text" class="px-3 py-1.5 rounded-lg text-sm font-medium text-slate-400 hover:text-white transition">自訂文字</button>
+    </div>
+
+    <!-- 功能按鈕 -->
+    <div class="flex items-center gap-2">
+      <button onclick="toggleFullScreen()" class="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition" title="全螢幕開關">
+        <i class="fa-solid fa-expand text-lg"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- 中央主顯示區 -->
+  <main class="flex-1 flex flex-col items-center justify-center p-6 text-center">
+
+    <!-- 1. 時鐘模式 -->
+    <div id="mode-clock" class="space-y-4">
+      <div id="clock-date" class="text-xl sm:text-3xl text-slate-400 font-medium">--</div>
+      <div id="clock-time" class="text-6xl sm:text-8xl md:text-9xl font-bold font-mono-num tracking-tight text-white">00:00:00</div>
+    </div>
+
+    <!-- 2. 倒數計時模式 -->
+    <div id="mode-timer" class="hidden space-y-6 w-full max-w-2xl">
+      <div id="timer-display" class="text-7xl sm:text-9xl font-bold font-mono-num tracking-tight text-amber-400">05:00</div>
+      
+      <!-- 計時控制器 -->
+      <div id="timer-controls" class="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
+        <div class="flex items-center gap-2 bg-slate-800/80 p-2 rounded-xl border border-slate-700">
+          <input type="number" id="timer-min" min="0" max="999" value="5" class="w-16 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-center text-lg text-white font-mono-num focus:outline-none focus:border-amber-500">
+          <span class="text-slate-400">分</span>
+          <input type="number" id="timer-sec" min="0" max="59" value="0" class="w-16 bg-slate-900 border border-slate-700 rounded-lg px-2 py-1 text-center text-lg text-white font-mono-num focus:outline-none focus:border-amber-500">
+          <span class="text-slate-400">秒</span>
+        </div>
+        <div class="flex gap-2">
+          <button onclick="startTimer()" id="btn-timer-start" class="px-5 py-2.5 bg-amber-500 hover:bg-amber-600 text-black font-bold rounded-xl transition flex items-center gap-2">
+            <i class="fa-solid fa-play"></i> 開始
+          </button>
+          <button onclick="pauseTimer()" id="btn-timer-pause" class="px-5 py-2.5 bg-slate-700 hover:bg-slate-600 text-white font-bold rounded-xl transition hidden">
+            <i class="fa-solid fa-pause"></i> 暫停
+          </button>
+          <button onclick="resetTimer()" class="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl transition">
+            重設
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. 自訂文字模式 -->
+    <div id="mode-text" class="hidden space-y-6 w-full max-w-4xl">
+      <div id="custom-text-display" class="text-4xl sm:text-6xl md:text-8xl font-bold leading-tight break-words text-indigo-300">
+        歡迎蒞臨會議
+      </div>
+
+      <div id="text-controls" class="pt-6">
+        <input type="text" id="text-input" value="歡迎蒞臨會議" placeholder="請輸入要顯示的文字..." 
+               class="w-full max-w-xl bg-slate-800/90 border border-slate-700 rounded-xl px-4 py-3 text-white text-lg focus:outline-none focus:border-indigo-500 text-center"
+               oninput="updateCustomText(this.value)">
+      </div>
+    </div>
+
+  </main>
+
+  <!-- 底部提示 -->
+  <footer class="p-3 text-center text-slate-600 text-xs">
+    提示：按 F11 鍵可獲得最佳全螢幕體驗
+  </footer>
+
+  <script>
+    let currentMode = 'clock';
+    let timerInterval = null;
+    let timerRemainingSeconds = 300;
+    let isTimerRunning = false;
+    let audioCtx = null;
+
+    // 確保點擊頁面時初始化音訊上下文（瀏覽器規定）
+    document.addEventListener('click', () => {
+      if (!audioCtx) {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (AudioContext) {
+          audioCtx = new AudioContext();
+        }
+      }
+      if (audioCtx && audioCtx.state === 'suspended') {
+        audioCtx.resume();
+      }
+    }, { once: true });
+
+    // --- 播放單一 Beep 聲 ---
+    function playSingleBeep(ctx) {
+      try {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(1000, ctx.currentTime); // A5 高音
+
+        gain.gain.setValueAtTime(0.1, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1);
+
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+
+        osc.start();
+        osc.stop(ctx.currentTime + 0.1);
+      } catch (e) {
+        console.warn('音效發聲錯誤：', e);
+      }
+    }
+
+    // --- 4個 beep -> 停 0.5 秒 -> 循環 3 次 ---
+    function playBeepSound() {
+      try {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (!audioCtx && AudioContext) {
+          audioCtx = new AudioContext();
+        }
+        if (!audioCtx) return;
+
+        if (audioCtx.state === 'suspended') {
+          audioCtx.resume();
+        }
+
+        // 總共 3 個循環
+        for (let round = 0; round < 4; round++) {
+          // 每一輪的起始時間：
+          // 4 個 beep 佔用 4 * 220ms = 880ms，加上 500ms 停頓 = 每輪週期 1380ms
+          const roundDelay = round * 1380;
+
+          for (let i = 0; i < 4; i++) {
+            const beepTime = roundDelay + (i * 220);
+            setTimeout(() => {
+              playSingleBeep(audioCtx);
+            }, beepTime);
+          }
+        }
+      } catch (e) {
+        console.warn('音效播放失敗：', e);
+      }
+    }
+
+    // --- 模式切換邏輯 ---
+    function switchMode(mode) {
+      currentMode = mode;
+      ['clock', 'timer', 'text'].forEach(m => {
+        document.getElementById(`mode-${m}`).classList.add('hidden');
+        const btn = document.getElementById(`btn-${m}`);
+        btn.classList.remove('bg-blue-600', 'text-white');
+        btn.classList.add('text-slate-400');
+      });
+
+      document.getElementById(`mode-${mode}`).classList.remove('hidden');
+      const activeBtn = document.getElementById(`btn-${mode}`);
+      activeBtn.classList.add('bg-blue-600', 'text-white');
+      activeBtn.classList.remove('text-slate-400');
+    }
+
+    // --- 1. 時鐘功能 ---
+    function updateClock() {
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const date = String(now.getDate()).padStart(2, '0');
+      const days = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+      const dayName = days[now.getDay()];
+
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+      const seconds = String(now.getSeconds()).padStart(2, '0');
+
+      document.getElementById('clock-date').textContent = `${year}-${month}-${date} ${dayName}`;
+      document.getElementById('clock-time').textContent = `${hours}:${minutes}:${seconds}`;
+    }
+    setInterval(updateClock, 1000);
+    updateClock();
+
+    // --- 2. 倒數計時功能 ---
+    function formatTimerDisplay(seconds) {
+      const m = Math.floor(seconds / 60);
+      const s = seconds % 60;
+      return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    }
+
+    function startTimer() {
+      if (!isTimerRunning) {
+        if (timerRemainingSeconds <= 0) {
+          const min = parseInt(document.getElementById('timer-min').value) || 0;
+          const sec = parseInt(document.getElementById('timer-sec').value) || 0;
+          timerRemainingSeconds = min * 60 + sec;
+        }
+
+        if (timerRemainingSeconds <= 0) return;
+
+        isTimerRunning = true;
+        document.getElementById('btn-timer-start').classList.add('hidden');
+        document.getElementById('btn-timer-pause').classList.remove('hidden');
+
+        timerInterval = setInterval(() => {
+          timerRemainingSeconds--;
+          document.getElementById('timer-display').textContent = formatTimerDisplay(timerRemainingSeconds);
+
+          if (timerRemainingSeconds <= 0) {
+            clearInterval(timerInterval);
+            isTimerRunning = false;
+            document.getElementById('btn-timer-start').classList.remove('hidden');
+            document.getElementById('btn-timer-pause').classList.add('hidden');
+            
+            // ⏰ 歸零時播放：4個beep -> 隔0.5秒 -> 4個beep -> 隔0.5秒 -> 4個beep
+            playBeepSound();
+          }
+        }, 1000);
+      }
+    }
+
+    function pauseTimer() {
+      if (isTimerRunning) {
+        clearInterval(timerInterval);
+        isTimerRunning = false;
+        document.getElementById('btn-timer-start').classList.remove('hidden');
+        document.getElementById('btn-timer-pause').classList.add('hidden');
+      }
+    }
+
+    function resetTimer() {
+      pauseTimer();
+      const min = parseInt(document.getElementById('timer-min').value) || 0;
+      const sec = parseInt(document.getElementById('timer-sec').value) || 0;
+      timerRemainingSeconds = min * 60 + sec;
+      document.getElementById('timer-display').textContent = formatTimerDisplay(timerRemainingSeconds);
+    }
+
+    // --- 3. 自訂文字功能 ---
+    function updateCustomText(val) {
+      document.getElementById('custom-text-display').textContent = val || '請輸入文字';
+    }
+
+    // --- 全螢幕功能 ---
+    function toggleFullScreen() {
+      const elem = document.documentElement;
+      if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+        const req = elem.requestFullscreen || elem.webkitRequestFullscreen;
+        if (req) {
+          req.call(elem).catch(() => togglePseudoFullscreen());
+        } else {
+          togglePseudoFullscreen();
+        }
+      } else {
+        const exit = document.exitFullscreen || document.webkitExitFullscreen;
+        if (exit) {
+          exit.call(document).catch(() => togglePseudoFullscreen());
+        } else {
+          togglePseudoFullscreen();
+        }
+      }
+    }
+
+    function togglePseudoFullscreen() {
+      const container = document.getElementById('main-container');
+      container.classList.toggle('pseudo-fullscreen');
+    }
+
+    // 初始化狀態
+    switchMode('clock');
+  </script>
+</body>
+</html>

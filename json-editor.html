@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>JSON 編輯器與結構檢視器</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- FontAwesome 圖示 -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600&family=Noto+Sans+TC:wght@400;500;700&display=swap');
+    body { font-family: 'Noto Sans TC', sans-serif; }
+    .font-mono-code { font-family: 'JetBrains Mono', monospace; }
+    
+    /* JSON 樹狀檢視顏色樣式 */
+    .json-key { color: #38bdf8; }     /* 屬性名稱 (Sky blue) */
+    .json-string { color: #34d399; }  /* 字串值 (Emerald) */
+    .json-number { color: #fbbf24; }  /* 數字 (Amber) */
+    .json-boolean { color: #f472b6; } /* 布林值 (Pink) */
+    .json-null { color: #94a3b8; }    /* Null (Slate) */
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col h-screen overflow-hidden">
+
+  <!-- 頂部導覽列 -->
+  <header class="bg-slate-800 border-b border-slate-700 px-4 py-3 flex flex-wrap justify-between items-center shrink-0 gap-3">
+    <div class="flex items-center gap-3">
+      <a href="index.html" class="px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white text-sm font-medium flex items-center gap-2 transition">
+        <i class="fa-solid fa-arrow-left"></i>
+        <span>返回主頁</span>
+      </a>
+      <h1 class="text-lg font-bold text-slate-100 hidden sm:flex items-center gap-2">
+        <i class="fa-solid fa-brackets-curly text-purple-400"></i> JSON 編輯器與檢視器
+      </h1>
+    </div>
+
+    <!-- 功能操作按鈕 -->
+    <div class="flex items-center gap-2 flex-wrap">
+      <button onclick="loadSample()" class="px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white text-xs sm:text-sm font-medium transition flex items-center gap-1.5">
+        <i class="fa-solid fa-lightbulb text-amber-400"></i> 載入範例
+      </button>
+      <button onclick="formatJSON()" class="px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-xs sm:text-sm font-semibold transition flex items-center gap-1.5 shadow-md shadow-indigo-600/20">
+        <i class="fa-solid fa-wand-magic-sparkles"></i> 格式化 (Beautify)
+      </button>
+      <button onclick="minifyJSON()" class="px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white text-xs sm:text-sm font-medium transition flex items-center gap-1.5">
+        <i class="fa-solid fa-compress"></i> 壓縮 (Minify)
+      </button>
+      <button onclick="copyJSON()" class="px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white text-xs sm:text-sm font-medium transition flex items-center gap-1.5">
+        <i class="fa-solid fa-copy text-emerald-400"></i> 複製
+      </button>
+      <button onclick="clearJSON()" class="px-3 py-1.5 rounded-lg bg-slate-700 hover:bg-slate-600 text-slate-300 hover:text-white text-xs sm:text-sm font-medium transition" title="清空">
+        <i class="fa-solid fa-trash-can text-rose-400"></i>
+      </button>
+    </div>
+  </header>
+
+  <!-- 主內容區：左右分欄 -->
+  <main class="flex-1 flex flex-col lg:flex-row overflow-hidden">
+    
+    <!-- 左側：JSON 編輯輸入區 -->
+    <div class="w-full lg:w-1/2 flex flex-col border-b lg:border-b-0 lg:border-r border-slate-700 bg-slate-950 h-1/2 lg:h-full">
+      <div class="bg-slate-900 px-4 py-2 border-b border-slate-800 flex justify-between items-center text-xs text-slate-400 shrink-0">
+        <span class="font-medium flex items-center gap-2">
+          <i class="fa-solid fa-code text-purple-400"></i> JSON 原始碼編輯
+        </span>
+        <span id="validation-status" class="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-semibold">JSON 格式正確</span>
+      </div>
+      <div class="flex-1 relative">
+        <textarea id="json-input" 
+          class="w-full h-full bg-slate-950 text-slate-200 p-4 font-mono-code text-sm resize-none focus:outline-none leading-relaxed selection:bg-purple-600 selection:text-white"
+          placeholder="在此貼上或輸入 JSON 資料..."
+          oninput="processJSON()"></textarea>
+      </div>
+    </div>
+
+    <!-- 右側：結構樹狀檢視區 -->
+    <div class="w-full lg:w-1/2 flex flex-col bg-slate-900 h-1/2 lg:h-full">
+      <div class="bg-slate-900 px-4 py-2 border-b border-slate-800 flex justify-between items-center text-xs text-slate-400 shrink-0">
+        <span class="font-medium flex items-center gap-2">
+          <i class="fa-solid fa-sitemap text-blue-400"></i> 結構檢視器 (Tree View)
+        </span>
+        <div class="flex gap-2">
+          <button onclick="expandAll(true)" class="hover:text-white transition">展開全部</button>
+          <span>/</span>
+          <button onclick="expandAll(false)" class="hover:text-white transition">收合全部</button>
+        </div>
+      </div>
+      <div id="json-tree-container" class="flex-1 p-4 overflow-auto font-mono-code text-sm select-text">
+        <!-- 動態產生的樹狀結構 -->
+      </div>
+    </div>
+
+  </main>
+
+  <script>
+    // 預設 JSON 範例
+    const sampleData = {
+      "project": "多功能線上工具箱",
+      "version": "1.0.0",
+      "author": {
+        "name": "Mike",
+        "role": "Director of IT"
+      },
+      "active": true,
+      "toolsCount": 3,
+      "tools": [
+        { "id": "display", "name": "全螢幕時鐘與顯示器", "enabled": true },
+        { "id": "editor", "name": "HTML 即時編輯預覽器", "enabled": true },
+        { "id": "json-editor", "name": "JSON 編輯器與檢視器", "enabled": true }
+      ],
+      "metadata": null
+    };
+
+    window.addEventListener('DOMContentLoaded', () => {
+      document.getElementById('json-input').value = JSON.stringify(sampleData, null, 2);
+      processJSON();
+    });
+
+    // 核心處理與即時解析 JSON
+    function processJSON() {
+      const inputStr = document.getElementById('json-input').value.trim();
+      const statusBadge = document.getElementById('validation-status');
+      const treeContainer = document.getElementById('json-tree-container');
+
+      if (!inputStr) {
+        statusBadge.textContent = "請輸入 JSON";
+        statusBadge.className = "px-2 py-0.5 rounded bg-slate-700 text-slate-300 font-semibold";
+        treeContainer.innerHTML = '<div class="text-slate-500 italic">無資料可顯示</div>';
+        return;
+      }
+
+      try {
+        const parsedObj = JSON.parse(inputStr);
+        // 格式正確提示
+        statusBadge.textContent = "JSON 格式正確";
+        statusBadge.className = "px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 font-semibold";
+
+        // 渲染樹狀結構
+        treeContainer.innerHTML = '';
+        treeContainer.appendChild(createJSONTree(parsedObj, 'root', true));
+
+      } catch (err) {
+        // 格式錯誤提示
+        statusBadge.textContent = "JSON 語法錯誤";
+        statusBadge.className = "px-2 py-0.5 rounded bg-rose-500/20 text-rose-400 font-semibold";
+        treeContainer.innerHTML = `<div class="text-rose-400 p-2 bg-rose-950/40 rounded border border-rose-800/50">
+          <div class="font-bold mb-1"><i class="fa-solid fa-triangle-exclamation mr-1"></i> 解析錯誤：</div>
+          <div class="text-xs font-mono-code">${escapeHtml(err.message)}</div>
+        </div>`;
+      }
+    }
+
+    // 遞迴產生 JSON 樹狀節點
+    function createJSONTree(data, key = '', isExpanded = true) {
+      const wrapper = document.createElement('div');
+      wrapper.className = 'pl-4 my-1';
+
+      const type = typeof data;
+      const isArray = Array.isArray(data);
+      const isObject = data !== null && type === 'object';
+
+      if (isObject) {
+        const entries = Object.entries(data);
+        const bracketOpen = isArray ? '[' : '{';
+        const bracketClose = isArray ? ']' : '}';
+        const countDesc = isArray ? `${entries.項 || entries.length} items` : `${entries.length} keys`;
+
+        const header = document.createElement('div');
+        header.className = 'flex items-center gap-1.5 cursor-pointer hover:bg-slate-800/50 rounded px-1 py-0.5';
+        
+        const toggleIcon = document.createElement('i');
+        toggleIcon.className = `fa-solid fa-chevron-${isExpanded ? 'down' : 'right'} text-xs text-slate-400 w-3 text-center`;
+        
+        const contentSpan = document.createElement('span');
+        if (key !== 'root') {
+          contentSpan.innerHTML = `<span class="json-key">"${escapeHtml(key)}"</span>: <span class="text-slate-400">${bracketOpen}</span> <span class="text-xs text-slate-500">(${countDesc})</span>`;
+        } else {
+          contentSpan.innerHTML = `<span class="text-slate-400">${bracketOpen}</span> <span class="text-xs text-slate-500">(${countDesc})</span>`;
+        }
+
+        header.appendChild(toggleIcon);
+        header.appendChild(contentSpan);
+        wrapper.appendChild(header);
+
+        const childrenContainer = document.createElement('div');
+        childrenContainer.className = isExpanded ? 'pl-4 border-l border-slate-800 ml-1.5' : 'pl-4 border-l border-slate-800 ml-1.5 hidden';
+
+        entries.forEach(([k, v]) => {
+          childrenContainer.appendChild(createJSONTree(v, k, false));
+        });
+        wrapper.appendChild(childrenContainer);
+
+        const footer = document.createElement('div');
+        footer.className = 'text-slate-400 pl-4';
+        footer.textContent = bracketClose;
+        wrapper.appendChild(footer);
+
+        // 點擊收合/展開
+        header.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const isHidden = childrenContainer.classList.toggle('hidden');
+          toggleIcon.className = `fa-solid fa-chevron-${isHidden ? 'right' : 'down'} text-xs text-slate-400 w-3 text-center`;
+        });
+
+      } else {
+        // 基本純量 (String, Number, Boolean, Null)
+        const row = document.createElement('div');
+        row.className = 'hover:bg-slate-800/50 rounded px-1 py-0.5 flex items-center gap-2';
+
+        let valFormatted = '';
+        let valClass = '';
+
+        if (type === 'string') {
+          valFormatted = `"${escapeHtml(data)}"`;
+          valClass = 'json-string';
+        } else if (type === 'number') {
+          valFormatted = data;
+          valClass = 'json-number';
+        } else if (type === 'boolean') {
+          valFormatted = data;
+          valClass = 'json-boolean';
+        } else if (data === null) {
+          valFormatted = 'null';
+          valClass = 'json-null';
+        }
+
+        if (key !== 'root') {
+          row.innerHTML = `<span class="json-key">"${escapeHtml(key)}"</span>: <span class="${valClass}">${valFormatted}</span>`;
+        } else {
+          row.innerHTML = `<span class="${valClass}">${valFormatted}</span>`;
+        }
+        wrapper.appendChild(row);
+      }
+
+      return wrapper;
+    }
+
+    // 格式化 (Beautify)
+    function formatJSON() {
+      const input = document.getElementById('json-input');
+      try {
+        const obj = JSON.parse(input.value);
+        input.value = JSON.stringify(obj, null, 2);
+        processJSON();
+      } catch (err) {
+        alert('無法格式化：JSON 語法有誤，請先修正錯誤！');
+      }
+    }
+
+    // 壓縮 (Minify)
+    function minifyJSON() {
+      const input = document.getElementById('json-input');
+      try {
+        const obj = JSON.parse(input.value);
+        input.value = JSON.stringify(obj);
+        processJSON();
+      } catch (err) {
+        alert('無法壓縮：JSON 語法有誤，請先修正錯誤！');
+      }
+    }
+
+    // 載入範例
+    function loadSample() {
+      document.getElementById('json-input').value = JSON.stringify(sampleData, null, 2);
+      processJSON();
+    }
+
+    // 清空
+    function clearJSON() {
+      if (confirm('確定要清空內容嗎？')) {
+        document.getElementById('json-input').value = '';
+        processJSON();
+      }
+    }
+
+    // 複製
+    function copyJSON() {
+      const input = document.getElementById('json-input');
+      input.select();
+      navigator.clipboard.writeText(input.value).then(() => {
+        alert('已成功複製 JSON 內容到剪貼簿！');
+      });
+    }
+
+    // 展開/收合全部
+    function expandAll(expand) {
+      const container = document.getElementById('json-tree-container');
+      const childrenContainers = container.querySelectorAll('.border-l');
+      const icons = container.querySelectorAll('.fa-chevron-right, .fa-chevron-down');
+
+      childrenContainers.forEach(el => {
+        if (expand) {
+          el.classList.remove('hidden');
+        } else {
+          el.classList.add('hidden');
+        }
+      });
+
+      icons.forEach(icon => {
+        icon.className = `fa-solid fa-chevron-${expand ? 'down' : 'right'} text-xs text-slate-400 w-3 text-center`;
+      });
+    }
+
+    function escapeHtml(str) {
+      return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;') // ✅ 正確的正規表達式
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+  </script>
+</body>
+</html>
